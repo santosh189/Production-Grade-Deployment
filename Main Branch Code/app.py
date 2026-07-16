@@ -59,7 +59,7 @@ products = [
         "price": 29.99,
         "image": "https://picsum.photos/300/200?random=6",
         "category": "Home",
-        "description": "desk lamp with adjustable brightness",
+        "description": "Desk lamp with adjustable brightness",
         "rating": 4.4
     }
 ]
