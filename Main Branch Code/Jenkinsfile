@@ -6,9 +6,9 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "kastrov/multibranch-flask-app"
-        GIT_USER   = "kastrokiran"
-        GIT_EMAIL  = "learnwithkastro@gmail.com"
+        IMAGE_NAME = "harisantosh/multibranch-flask-app"
+        GIT_USER  = "santosh189"
+        GIT_EMAIL = "santosh310santosh@gmail.com"
     }
 
     stages {
@@ -19,50 +19,60 @@ pipeline {
             }
         }
 
-        stage('Build and Push Image') {
-            when { branch 'main' }
+        stage('Build and Push Docker Image') {
+            when {
+                branch 'main'
+            }
+
             steps {
                 script {
-                    env.IMAGE_TAG = "build-${BUILD_NUMBER}"
+                    def IMAGE_TAG = "build-${env.BUILD_NUMBER}"
+                    env.IMAGE_TAG = IMAGE_TAG
 
                     withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-creds',
+                        credentialsId: 'DOCKER-CREDS',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
+
                         sh """
-                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
                         """
                     }
                 }
             }
         }
 
-        stage('Update K8s Manifest') {
-            when { branch 'main' }
+        stage('Update Kubernetes Manifest') {
+            when {
+                branch 'main'
+            }
+
             steps {
                 script {
+
                     withCredentials([usernamePassword(
-                        credentialsId: 'github-creds',
+                        credentialsId: 'GITHUB-CREDS',
                         usernameVariable: 'GIT_USERNAME',
                         passwordVariable: 'GIT_TOKEN'
                     )]) {
+
                         sh """
-                        set -e
-                        git config user.name "$GIT_USER"
-                        git config user.email "$GIT_EMAIL"
+                            git config user.name "${GIT_USER}"
+                            git config user.email "${GIT_EMAIL}"
 
-                        git fetch origin
-                        git checkout main
-                        git reset --hard origin/main
+                            git checkout main
+                            git pull origin main
 
-                        sed -i "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yml
+                            sed -i "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yml
 
-                        git add k8s/deployment.yml
-                        git diff --cached --quiet || git commit -m "Updated image to ${IMAGE_TAG}"
-                        git push https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/KastroVKiran/Multi-Branch-Prod.git main
+                            git add k8s/deployment.yml
+
+                            git diff --cached --quiet || git commit -m "Update image to ${IMAGE_TAG}"
+
+                            git push https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/santosh189/Production-Grade-Deployment.git main
                         """
                     }
                 }
@@ -70,3 +80,4 @@ pipeline {
         }
     }
 }
+
